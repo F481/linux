@@ -10,6 +10,11 @@ config SENSORS_LIS3LV02D
 	select INPUT_POLLDEV
 	default n
 
+config FFRICKEXAMPLE
+        tristate "ffrick example driver"
+         help
+          This is my test driver.
+
 config AD525X_DPOT
 	tristate "Analog Devices Digital Potentiometers"
 	depends on (I2C || SPI) && SYSFS
