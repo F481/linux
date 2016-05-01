@@ -1,0 +1,4 @@
+config HSWGT
+	tristate "hswgt test driver"
+	---help---
+	  Say Y here if you want the HSWGT Test Driver in your kernel.

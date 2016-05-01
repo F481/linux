@@ -2,6 +2,7 @@
 
 # fix for build system bug...
 obj-$(CONFIG_STAGING)		+= staging.o
+obj-$(CONFIG_HSWGT)			+= hswgt/
 
 obj-y				+= media/
 obj-$(CONFIG_SLICOSS)		+= slicoss/
