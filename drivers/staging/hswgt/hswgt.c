@@ -31,15 +31,10 @@ static const struct pci_device_id hswgt_id_table[] = {
 };
 MODULE_DEVICE_TABLE(pci, hswgt_id_table);
 
-static irqreturn_t hswgt_intr(int irq, void *dev_id)
 {
-	struct hswgt_dev *hswgt = dev_id;
 
-	u8 status = hswgt->hswgtmem->status;
 
-	pr_err("%s: %d\n", __func__, status);
 
-	return IRQ_HANDLED; /* IRQ_NONE */
 }
 
 static int hswgt_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
@@ -88,17 +83,11 @@ static int hswgt_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		goto err_out_free_res;
 	}
 
-	if ((err = request_irq(pdev->irq, hswgt_intr, IRQF_SHARED, DRV_NAME, hswgt))) {
-		pr_err("cannot request irq, aborting\n");
-		goto err_no_irq;
-	}
 
 	pr_info("%s rdy: %p\n", __func__, hswgt);
 
 	return err;
 
-err_no_irq:
-	pci_iounmap(pdev, hswgt->hswgtmem);
 err_out_free_res:
 	pci_release_regions(pdev);
 err_out_disable_pdev:
@@ -113,7 +102,6 @@ static void hswgt_remove(struct pci_dev *pdev)
 {
 	struct hswgt_dev *hswgt = pci_get_drvdata(pdev);
 
-	free_irq(pdev->irq, hswgt);
 	pci_iounmap(pdev, hswgt->hswgtmem);
 	pci_release_regions(pdev);
 	pci_disable_device(pdev);
