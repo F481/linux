@@ -12,17 +12,22 @@
 #include <linux/errno.h>
 #include <linux/pci.h>
 #include <linux/interrupt.h>
+#include <linux/leds.h>
 
 #define DRV_NAME "hswgt-pci"
+#define NUM_LEDS 3
 
 struct hswgt_mem {
-	u8 status;
-	u8 mem[1024*1024-1];
+	u8 led[NUM_LEDS];
+	u8 mem[1024*1024-NUM_LEDS];
 } __attribute__((packed));
 
 struct hswgt_dev {
 	struct pci_dev *pdev;
 	struct hswgt_mem *hswgtmem;
+	struct led_classdev led_heartbeat;
+	struct led_classdev led_net;
+	struct led_classdev led_disk;
 };
 
 static const struct pci_device_id hswgt_id_table[] = {
@@ -31,10 +36,36 @@ static const struct pci_device_id hswgt_id_table[] = {
 };
 MODULE_DEVICE_TABLE(pci, hswgt_id_table);
 
+static void hswgt_led_heartbeat_set(struct led_classdev *led_cdev,
+			   enum led_brightness brightness)
 {
+	struct hswgt_dev *hswgt;
+	hswgt = container_of(led_cdev, struct hswgt_dev, led_heartbeat);
+	hswgt->hswgtmem->led[0] = brightness;
+}
+
+static enum led_brightness hswgt_led_heartbeat_get(struct led_classdev *led_cdev)
+{
+	struct hswgt_dev *hswgt;
+	hswgt = container_of(led_cdev, struct hswgt_dev, led_heartbeat);
+	return hswgt->hswgtmem->led[0];
+}
 
 
+static void hswgt_led_net_set(struct led_classdev *led_cdev,
+			   enum led_brightness brightness)
+{
+	struct hswgt_dev *hswgt = container_of(led_cdev, struct hswgt_dev,
+					       led_net);
+	hswgt->hswgtmem->led[1] = brightness;
+}
 
+static void hswgt_led_disk_set(struct led_classdev *led_cdev,
+			   enum led_brightness brightness)
+{
+	struct hswgt_dev *hswgt = container_of(led_cdev, struct hswgt_dev,
+					       led_disk);
+	hswgt->hswgtmem->led[2] = brightness;
 }
 
 static int hswgt_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
@@ -83,6 +114,26 @@ static int hswgt_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		goto err_out_free_res;
 	}
 
+	hswgt->led_heartbeat.name = "heartbeat";
+	hswgt->led_heartbeat.brightness = LED_OFF;
+	hswgt->led_heartbeat.max_brightness = 1;
+	hswgt->led_heartbeat.brightness_set = hswgt_led_heartbeat_set;
+	hswgt->led_heartbeat.brightness_get = hswgt_led_heartbeat_get;
+	devm_led_classdev_register(&pdev->dev, &hswgt->led_heartbeat);
+
+	hswgt->led_net.name = "net";
+	hswgt->led_net.brightness = LED_OFF;
+	hswgt->led_net.max_brightness = 1;
+	hswgt->led_net.brightness_set = hswgt_led_net_set;
+	devm_led_classdev_register(&pdev->dev, &hswgt->led_net);
+
+	hswgt->led_disk.name = "disk";
+	hswgt->led_disk.brightness = LED_OFF;
+	hswgt->led_disk.max_brightness = 1;
+	hswgt->led_disk.brightness_set = hswgt_led_disk_set;
+	devm_led_classdev_register(&pdev->dev, &hswgt->led_disk);
+
+	hswgt->hswgtmem->led[0] = 1;
 
 	pr_info("%s rdy: %p\n", __func__, hswgt);
 
